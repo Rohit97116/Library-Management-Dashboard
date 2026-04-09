@@ -1,12 +1,17 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import BookshelfBackdrop from "../components/BookshelfBackdrop";
 import ClickSpark from "../components/ClickSpark";
 import GradientText from "../components/GradientText";
+import LaserFlow from "../components/LaserFlow";
 import ThemeToggle from "../components/ThemeToggle";
+import { useTheme } from "../context/ThemeContext";
 
 export default function WelcomePage() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   return (
     <motion.main
@@ -16,23 +21,25 @@ export default function WelcomePage() {
       exit={{ opacity: 0, y: -18 }}
       transition={{ duration: 0.25 }}
     >
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-80"
-        style={{
-          backgroundImage:
-            "linear-gradient(135deg, rgba(8,47,73,0.55) 0%, rgba(15,23,42,0.15) 45%, rgba(34,197,94,0.18) 100%), repeating-linear-gradient(90deg, rgba(255,255,255,0.045) 0, rgba(255,255,255,0.045) 1px, transparent 1px, transparent 84px)",
-          backgroundSize: "200% 200%, 100% 100%",
-        }}
-        animate={{
-          backgroundPosition: [
-            "0% 50%, 0% 0%",
-            "100% 50%, 0% 0%",
-            "0% 50%, 0% 0%",
-          ],
-        }}
-        transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-      />
+      {isDark ? (
+        <LaserFlow
+          color="#cf9eff"
+          horizontalBeamOffset={0.1}
+          verticalBeamOffset={0.05}
+          horizontalSizing={0.65}
+          verticalSizing={2}
+          wispDensity={1}
+          wispSpeed={15}
+          wispIntensity={5}
+          flowSpeed={0.35}
+          flowStrength={0.25}
+          fogIntensity={0.45}
+          fogScale={0.3}
+          fogFallSpeed={0.6}
+        />
+      ) : (
+        <BookshelfBackdrop />
+      )}
 
       <div className="relative mx-auto flex min-h-[calc(100vh-2rem)] max-w-6xl flex-col">
         <header className="flex justify-end">
@@ -40,50 +47,101 @@ export default function WelcomePage() {
         </header>
 
         <ClickSpark
-          sparkColor="#22d3ee"
+          sparkColor={isDark ? "#cf9eff" : "#d97706"}
           sparkSize={12}
           sparkRadius={22}
           sparkCount={10}
           duration={500}
         >
-          <section className="flex flex-1 items-center justify-center">
-            <motion.div
-              className="glass-panel w-full max-w-5xl px-6 py-12 text-center md:px-10 md:py-16"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-            >
+          {isDark ? (
+            <section className="flex flex-1 items-center justify-center py-6">
               <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+                className="glass-panel w-full max-w-4xl px-6 py-14 text-center md:px-10 md:py-16"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
               >
-                <GradientText
-                  className="text-4xl font-semibold leading-tight md:text-6xl"
-                  colors={["#22d3ee", "#34d399", "#f59e0b"]}
-                  animationSpeed={7}
-                  direction="horizontal"
+                <motion.div
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{
+                    duration: 5.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                 >
-                  WELCOME TO AMBEY LIBRARY
-                </GradientText>
+                  <GradientText
+                    className="text-4xl font-semibold leading-tight md:text-6xl"
+                    colors={["#cf9eff", "#60a5fa", "#22d3ee"]}
+                    animationSpeed={7}
+                    direction="horizontal"
+                  >
+                    WELCOME TO AMBEY LIBRARY
+                  </GradientText>
+                </motion.div>
+
+                <motion.div
+                  className="mt-10"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.18, duration: 0.24 }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => navigate("/login")}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-fuchsia-400 px-5 py-3 text-sm font-semibold text-slate-950 transition duration-200 hover:-translate-y-0.5 hover:bg-fuchsia-300"
+                  >
+                    <span>Admin Login</span>
+                    <ArrowRight size={16} />
+                  </button>
+                </motion.div>
+              </motion.div>
+            </section>
+          ) : (
+            <section className="grid flex-1 items-center gap-8 py-6 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-4">
+              <motion.div
+                className="max-w-xl px-2 pb-10 pt-4 md:px-4 md:pt-0"
+                initial={{ opacity: 0, x: -24 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.35 }}
+              >
+                <motion.div
+                  animate={{ y: [0, -4, 0] }}
+                  transition={{
+                    duration: 6,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <GradientText
+                    className="text-5xl font-semibold leading-[1.02] text-teal-800 md:text-6xl lg:text-7xl"
+                    colors={["#0f766e", "#0f766e", "#0e7490"]}
+                    animationSpeed={11}
+                    direction="horizontal"
+                  >
+                    WELCOME TO AMBEY LIBRARY
+                  </GradientText>
+                </motion.div>
+
+                <motion.div
+                  className="mt-10"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15, duration: 0.28 }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => navigate("/login")}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-500 px-8 py-4 text-base font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-amber-400"
+                  >
+                    <span>Admin Login</span>
+                    <ArrowRight size={18} />
+                  </button>
+                </motion.div>
               </motion.div>
 
-              <motion.div
-                className="mt-10"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.18, duration: 0.24 }}
-              >
-                <button
-                  type="button"
-                  onClick={() => navigate("/login")}
-                  className="primary-button"
-                >
-                  <span>Admin Login</span>
-                  <ArrowRight size={16} />
-                </button>
-              </motion.div>
-            </motion.div>
-          </section>
+              <div className="hidden md:block" />
+            </section>
+          )}
         </ClickSpark>
       </div>
     </motion.main>
