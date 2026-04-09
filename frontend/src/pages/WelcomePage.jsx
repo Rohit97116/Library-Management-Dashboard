@@ -48,19 +48,33 @@ export default function WelcomePage() {
 
         <ClickSpark
           sparkColor={isDark ? "#cf9eff" : "#d97706"}
-          sparkSize={12}
-          sparkRadius={22}
-          sparkCount={10}
-          duration={500}
+          sparkSize={18}
+          sparkRadius={28}
+          sparkCount={12}
+          duration={620}
+          lineWidth={3}
+          glow
         >
           {isDark ? (
             <section className="flex flex-1 items-center justify-center py-6">
               <motion.div
-                className="glass-panel w-full max-w-4xl px-6 py-14 text-center md:px-10 md:py-16"
+                className="w-full max-w-4xl rounded-lg border border-fuchsia-300/20 bg-slate-950/72 px-6 py-14 text-center shadow-[0_0_0_1px_rgba(217,70,239,0.08),0_40px_120px_rgba(76,29,149,0.35)] backdrop-blur-xl md:px-10 md:py-16"
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
               >
+                <motion.div
+                  className="mx-auto mb-10 h-px w-24 bg-gradient-to-r from-transparent via-fuchsia-400/90 to-transparent"
+                  animate={{
+                    opacity: [0.45, 1, 0.45],
+                    scaleX: [0.92, 1.08, 0.92],
+                  }}
+                  transition={{
+                    duration: 3.4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
                 <motion.div
                   animate={{ y: [0, -6, 0] }}
                   transition={{
@@ -104,6 +118,13 @@ export default function WelcomePage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.35 }}
               >
+                <motion.p
+                  className="mb-5 text-sm font-medium uppercase tracking-[0.28em] text-teal-700/80"
+                  animate={{ opacity: [0.6, 1, 0.6] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  Smart Library Access
+                </motion.p>
                 <motion.div
                   animate={{ y: [0, -4, 0] }}
                   transition={{

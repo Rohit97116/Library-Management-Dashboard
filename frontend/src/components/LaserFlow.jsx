@@ -48,6 +48,14 @@ export default function LaserFlow({
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden bg-[#060010]">
+      <div
+        className="absolute inset-0 opacity-80"
+        style={{
+          background:
+            "radial-gradient(circle at 20% 20%, rgba(196, 106, 255, 0.22), transparent 26%), radial-gradient(circle at 80% 14%, rgba(91, 160, 255, 0.18), transparent 24%), radial-gradient(circle at 50% 84%, rgba(111, 0, 255, 0.2), transparent 28%)",
+        }}
+      />
+
       <motion.div
         className="absolute inset-0"
         style={{
@@ -66,6 +74,24 @@ export default function LaserFlow({
           duration: 12 / Math.max(flowSpeed, 0.1),
           repeat: Infinity,
           ease: "easeInOut",
+        }}
+      />
+
+      <motion.div
+        className="absolute inset-y-0 left-[-12%] w-[44%]"
+        style={{
+          background: `linear-gradient(90deg, transparent 0%, ${withAlpha(
+            color,
+            0.12
+          )} 44%, transparent 100%)`,
+          filter: "blur(32px)",
+          transform: "skewX(-18deg)",
+        }}
+        animate={{ x: ["-20%", "170%"] }}
+        transition={{
+          duration: 9 / Math.max(flowSpeed, 0.12),
+          repeat: Infinity,
+          ease: "linear",
         }}
       />
 
@@ -114,7 +140,36 @@ export default function LaserFlow({
             duration: 8 + index * 1.4 - flowSpeed,
             repeat: Infinity,
             ease: "easeInOut",
-            delay: index * 0.35,
+          delay: index * 0.35,
+        }}
+      />
+      ))}
+
+      {Array.from({ length: 3 }).map((_, index) => (
+        <motion.div
+          key={`diag-${index}`}
+          className="absolute left-[-25%] top-1/2 h-px w-[160%] -translate-y-1/2"
+          style={{
+            transform: `translateY(-50%) rotate(${index === 1 ? -14 : index === 2 ? 12 : -6}deg)`,
+            background: `linear-gradient(90deg, transparent 0%, ${withAlpha(
+              color,
+              0.55
+            )} 30%, ${withAlpha(color, 0.98)} 50%, ${withAlpha(
+              color,
+              0.55
+            )} 70%, transparent 100%)`,
+            boxShadow: `0 0 18px ${withAlpha(color, 0.45)}`,
+            opacity: 0.5,
+          }}
+          animate={{
+            x: ["-6%", "8%", "-6%"],
+            opacity: [0.25, 0.8, 0.25],
+          }}
+          transition={{
+            duration: 7 + index * 1.6,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: index * 0.5,
           }}
         />
       ))}
@@ -179,12 +234,12 @@ export default function LaserFlow({
         style={{
           backgroundImage:
             "linear-gradient(180deg, rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)",
-          backgroundSize: "52px 52px",
-          opacity: 0.12,
+          backgroundSize: "44px 44px",
+          opacity: 0.16,
         }}
       />
 
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(6,0,16,0.08)_58%,rgba(6,0,16,0.8)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(6,0,16,0.06)_52%,rgba(6,0,16,0.82)_100%)]" />
     </div>
   );
 }

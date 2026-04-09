@@ -8,6 +8,8 @@ export default function ClickSpark({
   duration = 400,
   easing = "ease-out",
   extraScale = 1.0,
+  lineWidth = 2.5,
+  glow = true,
   children,
 }) {
   const canvasRef = useRef(null);
@@ -103,11 +105,15 @@ export default function ClickSpark({
           spark.y + (distance + lineLength) * Math.sin(spark.angle);
 
         context.strokeStyle = sparkColor;
-        context.lineWidth = 2;
+        context.lineWidth = lineWidth;
+        context.lineCap = "round";
+        context.shadowBlur = glow ? 12 : 0;
+        context.shadowColor = sparkColor;
         context.beginPath();
         context.moveTo(x1, y1);
         context.lineTo(x2, y2);
         context.stroke();
+        context.shadowBlur = 0;
 
         return true;
       });
@@ -124,6 +130,8 @@ export default function ClickSpark({
     duration,
     easeFunc,
     extraScale,
+    glow,
+    lineWidth,
     sparkColor,
     sparkRadius,
     sparkSize,
@@ -155,6 +163,7 @@ export default function ClickSpark({
         position: "relative",
         width: "100%",
         height: "100%",
+        isolation: "isolate",
       }}
       onClick={handleClick}
     >
@@ -169,9 +178,11 @@ export default function ClickSpark({
           top: 0,
           left: 0,
           pointerEvents: "none",
+          zIndex: 30,
+          overflow: "visible",
         }}
       />
-      {children}
+      <div style={{ position: "relative", zIndex: 10 }}>{children}</div>
     </div>
   );
 }

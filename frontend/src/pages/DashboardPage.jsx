@@ -16,9 +16,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import LogbookTable from "../components/LogbookTable";
+import MagicBento from "../components/MagicBento";
 import MemberFormModal from "../components/MemberFormModal";
 import Sidebar from "../components/Sidebar";
-import StatsCard from "../components/StatsCard";
 import ThemeToggle from "../components/ThemeToggle";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../lib/api";
@@ -389,13 +389,57 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <section
-          id="overview-section"
-          className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4"
-        >
-          {summaryCards.map((card) => (
-            <StatsCard key={card.title} {...card} />
-          ))}
+        <section id="overview-section" className="mt-6">
+          <MagicBento
+            items={summaryCards}
+            textAutoHide
+            enableStars
+            enableSpotlight
+            enableBorderGlow
+            enableTilt={false}
+            enableMagnetism={false}
+            clickEffect
+            spotlightRadius={400}
+            particleCount={12}
+            glowColor="132, 0, 255"
+            disableAnimations={false}
+            renderItem={(card) => {
+              const Icon = card.icon;
+              const toneClasses = {
+                cyan:
+                  "bg-cyan-500/10 text-cyan-700 ring-cyan-500/20 dark:bg-cyan-500/20 dark:text-cyan-200",
+                emerald:
+                  "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-200",
+                amber:
+                  "bg-amber-500/10 text-amber-700 ring-amber-500/20 dark:bg-amber-500/20 dark:text-amber-200",
+                rose:
+                  "bg-rose-500/10 text-rose-700 ring-rose-500/20 dark:bg-rose-500/20 dark:text-rose-200",
+              };
+
+              return (
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                      {card.title}
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">
+                      {card.value}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      {card.description}
+                    </p>
+                  </div>
+                  <div
+                    className={`inline-flex h-11 w-11 items-center justify-center rounded-lg ring-1 ${
+                      toneClasses[card.tone]
+                    }`}
+                  >
+                    <Icon size={18} />
+                  </div>
+                </div>
+              );
+            }}
+          />
         </section>
 
         <section id="controls-section" className="glass-panel mt-6 px-5 py-5">
