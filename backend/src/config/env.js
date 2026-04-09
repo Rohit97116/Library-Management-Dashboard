@@ -13,7 +13,7 @@ module.exports = {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean),
-  adminName: process.env.ADMIN_NAME || "Ambey Admin",
-  adminUsername: process.env.ADMIN_USERNAME || "admin",
-  adminPassword: process.env.ADMIN_PASSWORD || "admin12345",
+  adminName: process.env.ADMIN_NAME || "Shashank Rohilla",
+  adminUsername: process.env.ADMIN_USERNAME || "Shashank",
+  adminPassword: process.env.ADMIN_PASSWORD || "Shanky03@26Ro",
 };

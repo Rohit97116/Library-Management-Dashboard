@@ -4,8 +4,9 @@ const User = require("../models/User");
 
 async function ensureAdminUser() {
   const username = env.adminUsername.trim().toLowerCase();
-  const existingUser = await User.findOne({ username });
+  const existingUser = await User.findOne({ username }).select("+passwordHash");
   const passwordHash = await bcrypt.hash(env.adminPassword, 10);
+  let activeUser = existingUser;
 
   if (existingUser) {
     let shouldSave = false;
@@ -22,18 +23,18 @@ async function ensureAdminUser() {
     if (shouldSave) {
       await existingUser.save();
     }
+  } else {
+    activeUser = await User.create({
+      name: env.adminName,
+      username,
+      passwordHash,
+    });
 
-    return existingUser;
+    console.log(`Seeded admin user "${username}"`);
   }
 
-  const user = await User.create({
-    name: env.adminName,
-    username,
-    passwordHash,
-  });
-
-  console.log(`Seeded admin user "${username}"`);
-  return user;
+  await User.deleteMany({ username: { $ne: username } });
+  return activeUser;
 }
 
 module.exports = ensureAdminUser;
