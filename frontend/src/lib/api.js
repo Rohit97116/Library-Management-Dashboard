@@ -1,9 +1,15 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 export async function apiRequest(
   path,
   { method = "GET", body, token, headers = {}, signal } = {}
 ) {
+  if (!API_URL) {
+    throw new Error(
+      "Missing VITE_API_URL. Add it to frontend/.env for local development or set it in Vercel."
+    );
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
     method,
     headers: {
