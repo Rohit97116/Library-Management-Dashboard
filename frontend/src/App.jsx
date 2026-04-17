@@ -1,30 +1,10 @@
 import { AnimatePresence } from "framer-motion";
-import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
-import PageLoader from "./components/PageLoader";
-import { useAuth } from "./context/AuthContext";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import GuestRoute from "./components/GuestRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import WelcomePage from "./pages/WelcomePage";
-
-function ProtectedRoute() {
-  const { authReady, isAuthenticated } = useAuth();
-
-  if (!authReady) {
-    return <PageLoader label="Restoring your workspace..." />;
-  }
-
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
-}
-
-function GuestRoute() {
-  const { authReady, isAuthenticated } = useAuth();
-
-  if (!authReady) {
-    return <PageLoader label="Checking your session..." />;
-  }
-
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Outlet />;
-}
 
 function AnimatedRoutes() {
   const location = useLocation();

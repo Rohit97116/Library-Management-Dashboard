@@ -4,6 +4,7 @@ const cors = require("cors");
 const express = require("express");
 const morgan = require("morgan");
 const env = require("./config/env");
+const adminRoutes = require("./routes/adminRoutes");
 const authRoutes = require("./routes/authRoutes");
 const memberRoutes = require("./routes/memberRoutes");
 const { errorHandler, notFound } = require("./middleware/errorHandler");
@@ -34,6 +35,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/members", memberRoutes);
 
 if (hasFrontendBuild) {

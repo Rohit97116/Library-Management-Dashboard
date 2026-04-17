@@ -8,6 +8,15 @@ const {
   getFiscalCycleYear,
   getMonthKey,
 } = require("../utils/cycle");
+const {
+  ensureAdminProfile,
+  serializeAdminProfile,
+} = require("../services/adminProfileService");
+const {
+  checkDueMembers,
+  sendAllDueReminders,
+  sendReminderToMemberById,
+} = require("../services/reminderService");
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -25,8 +34,8 @@ function parseMemberPayload(body, options = {}) {
     payload.name = name;
   }
 
-  if (!partial || body.dateOfJoining !== undefined) {
-    const joiningDate = new Date(body.dateOfJoining);
+  if (!partial || body.dateOfJoining !== undefined || body.joinDate !== undefined) {
+    const joiningDate = new Date(body.dateOfJoining ?? body.joinDate);
     if (Number.isNaN(joiningDate.getTime())) {
       throw new Error("A valid joining date is required.");
     }
@@ -42,50 +51,73 @@ function parseMemberPayload(body, options = {}) {
   }
 
   if (!partial || body.status !== undefined) {
-    const status = body.status === "inactive" ? "inactive" : "active";
-    payload.status = status;
+    payload.status = body.status === "inactive" ? "inactive" : "active";
   }
 
-  if (!partial || body.phone !== undefined) {
-    payload.phone = body.phone?.trim() || "";
+  if (!partial || body.phoneNumber !== undefined || body.phone !== undefined) {
+    const phoneNumber = (body.phoneNumber ?? body.phone)?.trim();
+    if (!phoneNumber) {
+      throw new Error("Phone number is required.");
+    }
+
+    payload.phoneNumber = phoneNumber;
+    payload.phone = phoneNumber;
   }
 
   return payload;
 }
 
-function sortMembers(left, right) {
-  if (left.status !== right.status) {
-    return left.status === "active" ? -1 : 1;
+function ensurePaymentMaps(member) {
+  if (!member.monthlyFees) {
+    member.monthlyFees = new Map();
   }
 
-  return left.name.localeCompare(right.name);
+  if (!member.feeStatus) {
+    member.feeStatus = new Map();
+  }
+
+  if (!member.payments) {
+    member.payments = new Map();
+  }
 }
 
-function buildDashboardResponse(members, referenceDate = new Date()) {
+function buildDashboardResponse(
+  members,
+  { referenceDate = new Date(), adminProfile, dueMembers = [] } = {}
+) {
   const cycleYear = getFiscalCycleYear(referenceDate);
   const currentMonthIndex = getCycleMonthIndex(referenceDate);
+  const dueMemberMap = new Map(
+    dueMembers.map((dueEntry) => [dueEntry.memberId, dueEntry])
+  );
 
-  const hydratedMembers = members
-    .map((member) => {
-      const snapshot = buildMemberCycle(member, referenceDate, cycleYear);
-      const overdueCount = snapshot.months.filter((month) => month.isOverdue).length;
-      const paidCount = snapshot.months.filter((month) => month.isPaid).length;
+  const hydratedMembers = members.map((member) => {
+    const snapshot = buildMemberCycle(member, referenceDate, cycleYear);
+    const overdueCount = snapshot.months.filter((month) => month.isOverdue).length;
+    const paidCount = snapshot.months.filter((month) => month.isPaid).length;
+    const dueEntry = dueMemberMap.get(String(member._id));
 
-      return {
-        id: member._id,
-        name: member.name,
-        phone: member.phone,
-        monthlyFee: member.monthlyFee,
-        status: member.status,
-        dateOfJoining: member.dateOfJoining,
-        createdAt: member.createdAt,
-        updatedAt: member.updatedAt,
-        overdueCount,
-        paidCount,
-        months: snapshot.months,
-      };
-    })
-    .sort(sortMembers);
+    return {
+      id: member._id,
+      name: member.name,
+      phoneNumber: member.phoneNumber || member.phone,
+      phone: member.phoneNumber || member.phone,
+      monthlyFee: member.monthlyFee,
+      status: member.status,
+      dateOfJoining: member.dateOfJoining,
+      joinDate: member.dateOfJoining,
+      createdAt: member.createdAt,
+      updatedAt: member.updatedAt,
+      overdueCount,
+      paidCount,
+      dueDate: dueEntry?.dueDate || null,
+      canSendReminder: Boolean(dueEntry?.canSendReminder),
+      reminderStatus: dueEntry?.reminderStatus || "clear",
+      reminderLastSentAt: dueEntry?.lastReminderAt || null,
+      overdueAmount: dueEntry?.overdueAmount || 0,
+      months: snapshot.months,
+    };
+  });
 
   const summary = hydratedMembers.reduce(
     (accumulator, member) => {
@@ -133,6 +165,8 @@ function buildDashboardResponse(members, referenceDate = new Date()) {
     currentMonthIndex,
     months: DISPLAY_MONTHS,
     summary,
+    adminProfile: serializeAdminProfile(adminProfile),
+    dueMembers,
     members: hydratedMembers,
   };
 }
@@ -153,8 +187,30 @@ const getMembers = asyncHandler(async (req, res) => {
     query.status = status;
   }
 
-  const members = await Member.find(query).sort({ createdAt: -1 });
-  res.json(buildDashboardResponse(members));
+  const adminProfile = await ensureAdminProfile(req.user);
+  const shouldLoadAllMembers = Boolean(search || status);
+  const [members, allMembers] = await Promise.all([
+    Member.find(query).sort({ createdAt: 1, _id: 1 }),
+    shouldLoadAllMembers
+      ? Member.find({}).sort({ createdAt: 1, _id: 1 })
+      : Promise.resolve(null),
+  ]);
+  const dueMembers = await checkDueMembers({
+    members: allMembers || members,
+    adminProfile,
+  });
+
+  res.json(buildDashboardResponse(members, { adminProfile, dueMembers }));
+});
+
+const getDueMembers = asyncHandler(async (req, res) => {
+  const adminProfile = await ensureAdminProfile(req.user);
+  const dueMembers = await checkDueMembers({ adminProfile });
+
+  res.json({
+    dueMembers,
+    adminProfile: serializeAdminProfile(adminProfile),
+  });
 });
 
 const createMember = asyncHandler(async (req, res) => {
@@ -258,13 +314,18 @@ const togglePayment = asyncHandler(async (req, res) => {
   }
 
   const paymentKey = getMonthKey(cycleYear, monthIndex);
-  const currentValue = member.payments.get(paymentKey);
+  const paymentSource = member.monthlyFees || member.feeStatus || member.payments;
+  const currentValue = paymentSource?.get(paymentKey);
   const nextPaidValue = !currentValue?.paid;
-
-  member.payments.set(paymentKey, {
+  const nextValue = {
     paid: nextPaidValue,
     paidAt: nextPaidValue ? new Date() : null,
-  });
+  };
+
+  ensurePaymentMaps(member);
+  member.monthlyFees.set(paymentKey, nextValue);
+  member.feeStatus.set(paymentKey, nextValue);
+  member.payments.set(paymentKey, nextValue);
 
   await member.save();
 
@@ -279,10 +340,38 @@ const togglePayment = asyncHandler(async (req, res) => {
   });
 });
 
+const sendMemberReminder = asyncHandler(async (req, res) => {
+  const adminProfile = await ensureAdminProfile(req.user);
+  const result = await sendReminderToMemberById(req.params.id, {
+    adminProfile,
+    triggeredBy: "manual",
+    referenceDate: new Date(),
+  });
+
+  res.json({
+    ...result,
+    message: result.message,
+  });
+});
+
+const sendAllMemberReminders = asyncHandler(async (req, res) => {
+  const adminProfile = await ensureAdminProfile(req.user);
+  const result = await sendAllDueReminders({
+    adminProfile,
+    triggeredBy: "manual",
+    referenceDate: new Date(),
+  });
+
+  res.json(result);
+});
+
 module.exports = {
   createMember,
   deleteMember,
+  getDueMembers,
   getMembers,
+  sendAllMemberReminders,
+  sendMemberReminder,
   toggleMemberStatus,
   togglePayment,
   updateMember,

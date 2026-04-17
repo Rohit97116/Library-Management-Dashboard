@@ -5,12 +5,14 @@ import {
   LayoutDashboard,
   LogOut,
   PlusCircle,
+  Settings2,
   TableProperties,
   X,
 } from "lucide-react";
 
 function SidebarContent({
   cycleLabel,
+  libraryName,
   onClose,
   onExportPdf,
   onLogout,
@@ -28,6 +30,11 @@ function SidebarContent({
       label: "Logbook",
       icon: TableProperties,
       onClick: () => onNavigate("logbook-section"),
+    },
+    {
+      label: "Library Settings",
+      icon: Settings2,
+      onClick: () => onNavigate("settings-section"),
     },
     {
       label: "Add Member",
@@ -49,7 +56,7 @@ function SidebarContent({
             <BookOpenText size={20} />
           </div>
           <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
-            Ambey Library
+            {libraryName || "Ambey Library"}
           </p>
           <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">
             Dashboard

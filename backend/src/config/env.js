@@ -16,4 +16,6 @@ module.exports = {
   adminName: process.env.ADMIN_NAME || "Shashank Rohilla",
   adminUsername: process.env.ADMIN_USERNAME || "Shashank",
   adminPassword: process.env.ADMIN_PASSWORD || "Shanky03@26Ro",
+  adminPhone: process.env.ADMIN_PHONE || "",
+  libraryName: process.env.LIBRARY_NAME || "Ambey Library",
 };

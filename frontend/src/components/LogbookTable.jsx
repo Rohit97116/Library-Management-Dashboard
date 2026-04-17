@@ -1,6 +1,11 @@
 import { motion } from "framer-motion";
-import { Edit3, Trash2 } from "lucide-react";
-import { formatCurrency, formatDate, formatMonthCaption } from "../utils/format";
+import { BellRing, Edit3, Trash2 } from "lucide-react";
+import {
+  formatCurrency,
+  formatDate,
+  formatMonthCaption,
+  formatShortDate,
+} from "../utils/format";
 
 const monthToneClasses = {
   paid: "border-emerald-500/30 bg-emerald-500 text-white dark:border-emerald-400/30 dark:bg-emerald-500",
@@ -49,6 +54,7 @@ export default function LogbookTable({
   months,
   onDeleteMember,
   onEditMember,
+  onSendReminder,
   onTogglePayment,
   onToggleStatus,
 }) {
@@ -69,7 +75,7 @@ export default function LogbookTable({
       </div>
 
       <div className="overflow-auto">
-        <table className="w-full min-w-[1500px] border-collapse">
+        <table className="w-full min-w-[1600px] border-collapse">
           <thead className="sticky top-0 z-10 bg-slate-950 text-white dark:bg-slate-900">
             <tr>
               <th className="px-3 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">
@@ -113,6 +119,8 @@ export default function LogbookTable({
               const statusBusy = busyKey === `status-${member.id}`;
               const deleteBusy = busyKey === `delete-${member.id}`;
               const editBusy = busyKey === `member-${member.id}`;
+              const reminderBusy = busyKey === `reminder-${member.id}`;
+              const hasDue = member.overdueCount > 0;
 
               return (
                 <tr
@@ -120,6 +128,10 @@ export default function LogbookTable({
                   className={`border-b border-slate-200/70 transition duration-200 hover:bg-cyan-500/5 dark:border-white/10 dark:hover:bg-cyan-500/6 ${
                     member.status === "inactive"
                       ? "bg-amber-200/40 dark:bg-amber-500/10"
+                      : ""
+                  } ${
+                    hasDue
+                      ? "bg-rose-500/[0.04] shadow-[inset_0_0_0_1px_rgba(244,63,94,0.12),0_0_32px_rgba(244,63,94,0.04)] dark:bg-rose-500/[0.06]"
                       : ""
                   }`}
                 >
@@ -141,14 +153,40 @@ export default function LogbookTable({
                     {index + 1}
                   </td>
                   <td className="px-3 py-3 align-top">
-                    <div className="min-w-[210px]">
-                      <p className="text-sm font-semibold text-slate-950 dark:text-white">
-                        {member.name}
-                      </p>
+                    <div className="min-w-[240px]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                          {member.name}
+                        </p>
+                        {hasDue ? (
+                          <span className="rounded-full bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-700 animate-pulse dark:bg-rose-500/20 dark:text-rose-200">
+                            Fee Due
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         {formatCurrency(member.monthlyFee)} / month
-                        {member.phone ? ` • ${member.phone}` : ""}
+                        {member.phoneNumber ? ` - ${member.phoneNumber}` : ""}
                       </p>
+                      {hasDue || member.reminderLastSentAt ? (
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                          {hasDue ? (
+                            <span className="rounded-full bg-rose-500/10 px-2.5 py-1 font-medium text-rose-700 dark:bg-rose-500/20 dark:text-rose-200">
+                              {formatCurrency(member.overdueAmount)} pending
+                            </span>
+                          ) : null}
+                          {member.dueDate ? (
+                            <span className="rounded-full bg-slate-900/5 px-2.5 py-1 font-medium text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                              Due {formatShortDate(member.dueDate)}
+                            </span>
+                          ) : null}
+                          {member.reminderLastSentAt ? (
+                            <span className="rounded-full bg-cyan-500/10 px-2.5 py-1 font-medium text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-200">
+                              Reminder {formatShortDate(member.reminderLastSentAt)}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                   </td>
                   <td className="px-3 py-3 align-top text-sm text-slate-600 dark:text-slate-300">
@@ -169,6 +207,19 @@ export default function LogbookTable({
 
                   <td className="px-3 py-3 align-top">
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onSendReminder(member)}
+                        disabled={reminderBusy || !member.canSendReminder || !hasDue}
+                        className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border transition duration-200 ${
+                          member.canSendReminder && hasDue
+                            ? "border-cyan-200 bg-white text-cyan-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-cyan-50 dark:border-cyan-500/20 dark:bg-slate-900 dark:text-cyan-200 dark:hover:bg-cyan-500/10"
+                            : "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-slate-950 dark:text-slate-600"
+                        }`}
+                        aria-label={`Send reminder to ${member.name}`}
+                      >
+                        <BellRing size={16} />
+                      </button>
                       <button
                         type="button"
                         onClick={() => onEditMember(member)}

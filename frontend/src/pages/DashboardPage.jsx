@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
+  BellRing,
   CircleAlert,
   Download,
   IndianRupee,
@@ -14,7 +15,9 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import AdminProfilePanel from "../components/AdminProfilePanel";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import DueReminderModal from "../components/DueReminderModal";
 import LogbookTable from "../components/LogbookTable";
 import MagicBento from "../components/MagicBento";
 import MemberFormModal from "../components/MemberFormModal";
@@ -40,7 +43,7 @@ function buildQueryString(searchText, statusFilter) {
 }
 
 export default function DashboardPage() {
-  const { logout, token, user } = useAuth();
+  const { logout, token, updateUser, user } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -53,7 +56,9 @@ export default function DashboardPage() {
     member: null,
   });
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
   const initialLoadRef = useRef(false);
+  const seenDueSignatureRef = useRef("");
 
   const loadDashboard = useCallback(
     async ({ signal } = {}) => {
@@ -114,19 +119,46 @@ export default function DashboardPage() {
         }
 
         await loadDashboard();
-        return true;
+        return { ok: true, response };
       } catch (error) {
         toast.error(error.message);
         if (error.status === 401) {
           logout();
         }
-        return false;
+        return { ok: false, error };
       } finally {
         setBusyKey("");
       }
     },
     [loadDashboard, logout]
   );
+
+  const dueMembers = dashboard?.dueMembers || [];
+  const dueSignature = useMemo(
+    () =>
+      dueMembers
+        .map((entry) => `${entry.memberId}:${entry.monthKeys.join(",")}:${entry.dueDate}`)
+        .join("|"),
+    [dueMembers]
+  );
+
+  useEffect(() => {
+    if (!dueSignature) {
+      seenDueSignatureRef.current = "";
+      return;
+    }
+
+    if (loading || refreshing) {
+      return;
+    }
+
+    if (seenDueSignatureRef.current === dueSignature) {
+      return;
+    }
+
+    seenDueSignatureRef.current = dueSignature;
+    setReminderModalOpen(true);
+  }, [dueSignature, loading, refreshing]);
 
   const summaryCards = useMemo(() => {
     const summary = dashboard?.summary;
@@ -177,7 +209,7 @@ export default function DashboardPage() {
   async function handleMemberSubmit(payload) {
     const isEditing = Boolean(memberModal.member);
     const memberId = memberModal.member?.id;
-    const success = await runMutation(
+    const result = await runMutation(
       isEditing ? `member-${memberId}` : "member-create",
       () =>
         apiRequest(isEditing ? `/members/${memberId}` : "/members", {
@@ -187,7 +219,7 @@ export default function DashboardPage() {
         })
     );
 
-    if (success) {
+    if (result.ok) {
       setMemberModal({ open: false, member: null });
     }
   }
@@ -197,14 +229,14 @@ export default function DashboardPage() {
       return;
     }
 
-    const success = await runMutation(`delete-${deleteTarget.id}`, () =>
+    const result = await runMutation(`delete-${deleteTarget.id}`, () =>
       apiRequest(`/members/${deleteTarget.id}`, {
         method: "DELETE",
         token,
       })
     );
 
-    if (success) {
+    if (result.ok) {
       setDeleteTarget(null);
     }
   }
@@ -235,6 +267,81 @@ export default function DashboardPage() {
     );
   }
 
+  async function handleSendMemberReminder(member) {
+    if (!member.overdueCount) {
+      toast("No pending dues.");
+      return;
+    }
+
+    if (!member.canSendReminder) {
+      toast.error("This member does not have a valid phone number.");
+      return;
+    }
+
+    await runMutation(`reminder-${member.id}`, () =>
+      apiRequest(`/members/${member.id}/reminders`, {
+        method: "POST",
+        token,
+      })
+    );
+  }
+
+  async function handleSendAllReminders() {
+    if (!dueMembers.length) {
+      toast("No pending dues.");
+      setReminderModalOpen(false);
+      return;
+    }
+
+    const result = await runMutation("reminders-all", () =>
+      apiRequest("/members/reminders/send-all", {
+        method: "POST",
+        token,
+      })
+    );
+
+    if (result.ok) {
+      setReminderModalOpen(false);
+    }
+  }
+
+  async function handleSaveAdminProfile(payload) {
+    try {
+      setBusyKey("admin-profile");
+      const response = await apiRequest("/admin/profile", {
+        method: "PUT",
+        token,
+        body: payload,
+      });
+
+      if (response?.message) {
+        toast.success(response.message);
+      }
+
+      if (response?.user) {
+        updateUser(response.user);
+      }
+
+      setDashboard((current) =>
+        current
+          ? {
+              ...current,
+              adminProfile: response.profile,
+            }
+          : current
+      );
+
+      await loadDashboard();
+    } catch (error) {
+      toast.error(error.message);
+      if (error.status === 401) {
+        logout();
+      }
+    } finally {
+      setBusyKey("");
+    }
+  }
+
   function handleExportPdf() {
     if (!dashboard?.members?.length) {
       toast.error("No members available for export.");
@@ -247,7 +354,7 @@ export default function DashboardPage() {
     });
 
     document.setFontSize(18);
-    document.text("Ambey Library", 14, 16);
+    document.text(dashboard.adminProfile?.libraryName || "Ambey Library", 14, 16);
     document.setFontSize(10);
     document.text(`Cycle ${dashboard.cycleLabel}`, 14, 23);
 
@@ -345,6 +452,7 @@ export default function DashboardPage() {
         }}
         onLogout={logout}
         cycleLabel={dashboard?.cycleLabel}
+        libraryName={dashboard?.adminProfile?.libraryName}
         user={user}
       />
 
@@ -364,7 +472,7 @@ export default function DashboardPage() {
                 Welcome back, {user?.name || "Admin"}
               </p>
               <h1 className="mt-1 text-3xl font-semibold text-slate-950 dark:text-white">
-                Ambey Library Dashboard
+                {(dashboard?.adminProfile?.libraryName || "Ambey Library")} Dashboard
               </h1>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                 {dashboard ? `Cycle ${dashboard.cycleLabel}` : "Loading cycle"}
@@ -473,6 +581,19 @@ export default function DashboardPage() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
+                onClick={handleSendAllReminders}
+                className="secondary-button"
+                disabled={busyKey === "reminders-all"}
+              >
+                <BellRing size={16} />
+                <span>
+                  {busyKey === "reminders-all"
+                    ? "Sending..."
+                    : "Send All Reminders"}
+                </span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setMemberModal({ open: true, member: null })}
                 className="primary-button"
               >
@@ -489,6 +610,15 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+            <span className="rounded-full bg-slate-900/5 px-3 py-1 dark:bg-white/10">
+              {dashboard?.members?.length || 0} visible members
+            </span>
+            <span className="rounded-full bg-rose-500/10 px-3 py-1 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200">
+              {dueMembers.length ? `${dueMembers.length} due reminders ready` : "No pending dues"}
+            </span>
+          </div>
         </section>
 
         <section id="logbook-section" className="mt-6">
@@ -500,11 +630,29 @@ export default function DashboardPage() {
             months={dashboard?.months || []}
             onDeleteMember={(member) => setDeleteTarget(member)}
             onEditMember={(member) => setMemberModal({ open: true, member })}
+            onSendReminder={handleSendMemberReminder}
             onTogglePayment={handleTogglePayment}
             onToggleStatus={handleToggleStatus}
           />
         </section>
+
+        <section id="settings-section" className="mt-6">
+          <AdminProfilePanel
+            busy={busyKey === "admin-profile"}
+            profile={dashboard?.adminProfile}
+            onSubmit={handleSaveAdminProfile}
+          />
+        </section>
       </div>
+
+      <DueReminderModal
+        open={reminderModalOpen}
+        dueMembers={dueMembers}
+        libraryName={dashboard?.adminProfile?.libraryName}
+        onClose={() => setReminderModalOpen(false)}
+        onSend={handleSendAllReminders}
+        sending={busyKey === "reminders-all"}
+      />
 
       <MemberFormModal
         open={memberModal.open}

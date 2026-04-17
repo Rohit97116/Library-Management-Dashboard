@@ -65,23 +65,28 @@ function getDueDateForMonth(joinDateInput, cycleYear, monthIndex) {
   return new Date(year, month, dueDay, 23, 59, 59, 999);
 }
 
-function normalizePayments(payments) {
-  if (!payments) {
+function normalizePayments(member) {
+  const source = member?.monthlyFees || member?.feeStatus || member?.payments;
+  if (!source) {
     return {};
   }
 
-  if (payments instanceof Map) {
-    return Object.fromEntries(payments.entries());
+  if (source instanceof Map) {
+    return Object.fromEntries(source.entries());
   }
 
-  return payments;
+  if (typeof source.toObject === "function") {
+    return source.toObject();
+  }
+
+  return source;
 }
 
 function buildMemberCycle(member, referenceDate = new Date(), cycleYear) {
   const activeCycleYear =
     typeof cycleYear === "number" ? cycleYear : getFiscalCycleYear(referenceDate);
   const joinDate = new Date(member.dateOfJoining);
-  const paymentMap = normalizePayments(member.payments);
+  const paymentMap = normalizePayments(member);
 
   const months = DISPLAY_MONTHS.map(({ index, label }) => {
     const calendarYear = getCalendarYearForCycleMonth(activeCycleYear, index);
@@ -107,8 +112,6 @@ function buildMemberCycle(member, referenceDate = new Date(), cycleYear) {
       };
     }
 
-    // Each member keeps the same day-of-month as their due anchor. If the month
-    // is shorter, the due date automatically falls on that month's last day.
     const dueDate = getDueDateForMonth(joinDate, activeCycleYear, index);
     const isPaid = Boolean(paymentState.paid);
     const isOverdue = !isPaid && referenceDate > dueDate;

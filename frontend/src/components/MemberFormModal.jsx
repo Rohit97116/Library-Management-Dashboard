@@ -6,7 +6,7 @@ function createInitialState() {
     name: "",
     dateOfJoining: new Date().toISOString().slice(0, 10),
     monthlyFee: "1200",
-    phone: "",
+    phoneNumber: "",
     status: "active",
   };
 }
@@ -31,7 +31,7 @@ export default function MemberFormModal({
         name: member.name || "",
         dateOfJoining: member.dateOfJoining?.slice(0, 10) || "",
         monthlyFee: String(member.monthlyFee ?? ""),
-        phone: member.phone || "",
+        phoneNumber: member.phoneNumber || member.phone || "",
         status: member.status || "active",
       });
       return;
@@ -136,20 +136,21 @@ export default function MemberFormModal({
 
         <div>
           <label htmlFor="member-phone" className="field-label">
-            Phone
+            Phone Number
           </label>
           <input
             id="member-phone"
             type="text"
             className="field-input"
-            placeholder="Optional"
-            value={formValues.phone}
+            placeholder="9876543210"
+            value={formValues.phoneNumber}
             onChange={(event) =>
               setFormValues((current) => ({
                 ...current,
-                phone: event.target.value,
+                phoneNumber: event.target.value,
               }))
             }
+            required
           />
         </div>
 

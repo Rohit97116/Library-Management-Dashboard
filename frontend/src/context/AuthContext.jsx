@@ -56,6 +56,18 @@ export function AuthProvider({ children }) {
     setUser(nextUser);
   }, []);
 
+  const updateUser = useCallback((nextUser) => {
+    if (!nextUser) {
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+    }
+
+    setUser(nextUser);
+  }, []);
+
   const login = useCallback(
     async (credentials) => {
       const response = await apiRequest("/auth/login", {
@@ -85,10 +97,7 @@ export function AuthProvider({ children }) {
       try {
         const response = await apiRequest("/auth/me", { token });
         if (!ignore) {
-          setUser(response.user);
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-          }
+          updateUser(response.user);
         }
       } catch (error) {
         if (!ignore) {
@@ -106,18 +115,19 @@ export function AuthProvider({ children }) {
     return () => {
       ignore = true;
     };
-  }, [clearSession, token]);
+  }, [clearSession, token, updateUser]);
 
   const value = useMemo(
     () => ({
       authReady,
-      isAuthenticated: Boolean(token),
+      isAuthenticated: Boolean(token && user),
       login,
       logout,
       token,
+      updateUser,
       user,
     }),
-    [authReady, login, logout, token, user]
+    [authReady, login, logout, token, updateUser, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

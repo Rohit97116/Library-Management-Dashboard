@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpenText,
+  LoaderCircle,
   LockKeyhole,
   UserRound,
 } from "lucide-react";
@@ -28,7 +29,7 @@ export default function LoginPage() {
     try {
       await login(formValues);
       toast.success("Signed in successfully.");
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -90,6 +91,7 @@ export default function LoginPage() {
                     }))
                   }
                   required
+                  disabled={submitting}
                 />
               </div>
             </div>
@@ -116,6 +118,7 @@ export default function LoginPage() {
                     }))
                   }
                   required
+                  disabled={submitting}
                 />
               </div>
             </div>
@@ -125,8 +128,17 @@ export default function LoginPage() {
               className="primary-button w-full justify-center"
               disabled={submitting}
             >
-              <span>{submitting ? "Signing in..." : "Open Dashboard"}</span>
-              <ArrowRight size={16} />
+              {submitting ? (
+                <>
+                  <LoaderCircle size={16} className="animate-spin" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                <>
+                  <span>Open Dashboard</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
             </button>
           </form>
         </section>
