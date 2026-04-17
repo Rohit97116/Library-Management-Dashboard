@@ -43,6 +43,16 @@ const reminderLogSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    externalId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    failureReason: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     status: {
       type: String,
       enum: ["sent", "skipped", "failed"],

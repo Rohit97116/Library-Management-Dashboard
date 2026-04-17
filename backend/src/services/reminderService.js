@@ -1,7 +1,11 @@
 const Member = require("../models/Member");
 const ReminderLog = require("../models/ReminderLog");
 const { buildMemberCycle, getFiscalCycleYear } = require("../utils/cycle");
-const { buildReminderMessage, sendReminderSms } = require("./smsService");
+const {
+  buildReminderMessage,
+  getConfiguredSmsProvider,
+  sendReminderSms,
+} = require("./smsService");
 const { getPrimaryAdminProfile } = require("./adminProfileService");
 
 async function buildReminderState() {
@@ -44,7 +48,7 @@ function buildDueMemberEntry(member, cycleSnapshot, adminProfile, reminderMeta) 
     monthKeys: overdueMonths.map((month) => month.key),
     lastReminderAt: latestReminder?.sentAt || null,
     reminderStatus: phoneNumber
-      ? latestReminder
+      ? latestReminder?.status === "sent"
         ? "recently-sent"
         : "pending"
       : "missing-phone",
@@ -87,6 +91,7 @@ async function sendReminderForEntry(
     return {
       sent: false,
       skipped: true,
+      failed: false,
       message: "No pending dues.",
     };
   }
@@ -95,38 +100,62 @@ async function sendReminderForEntry(
     return {
       sent: false,
       skipped: true,
+      failed: false,
+      memberId: dueEntry.memberId,
       message: `${dueEntry.name} does not have a valid phone number.`,
     };
   }
 
-  const smsResult = await sendReminderSms({
-    to: dueEntry.phoneNumber,
-    message: dueEntry.message,
-  });
+  try {
+    const smsResult = await sendReminderSms({
+      to: dueEntry.phoneNumber,
+      message: dueEntry.message,
+    });
 
-  await ReminderLog.create({
-    member: dueEntry.memberId,
-    cycleYear: dueEntry.cycleYear,
-    monthKeys: dueEntry.monthKeys,
-    dueDate: new Date(dueEntry.dueDate),
-    memberName: dueEntry.name,
-    phoneNumber: dueEntry.phoneNumber,
-    message: dueEntry.message,
-    provider: smsResult.provider,
-    simulated: smsResult.simulated,
-    status: "sent",
-    triggeredBy,
-    sentAt: referenceDate,
-  });
+    await ReminderLog.create({
+      member: dueEntry.memberId,
+      cycleYear: dueEntry.cycleYear,
+      monthKeys: dueEntry.monthKeys,
+      dueDate: new Date(dueEntry.dueDate),
+      memberName: dueEntry.name,
+      phoneNumber: dueEntry.phoneNumber,
+      message: dueEntry.message,
+      provider: smsResult.provider,
+      simulated: smsResult.simulated,
+      externalId: smsResult.externalId || "",
+      status: "sent",
+      triggeredBy,
+      sentAt: referenceDate,
+    });
 
-  return {
-    sent: true,
-    skipped: false,
-    simulated: smsResult.simulated,
-    provider: smsResult.provider,
-    memberId: dueEntry.memberId,
-    message: `Reminder sent successfully to ${dueEntry.name}.`,
-  };
+    return {
+      sent: true,
+      skipped: false,
+      failed: false,
+      simulated: smsResult.simulated,
+      provider: smsResult.provider,
+      memberId: dueEntry.memberId,
+      message: `Reminder sent successfully to ${dueEntry.name}.`,
+    };
+  } catch (error) {
+    await ReminderLog.create({
+      member: dueEntry.memberId,
+      cycleYear: dueEntry.cycleYear,
+      monthKeys: dueEntry.monthKeys,
+      dueDate: new Date(dueEntry.dueDate),
+      memberName: dueEntry.name,
+      phoneNumber: dueEntry.phoneNumber,
+      message: dueEntry.message,
+      provider: getConfiguredSmsProvider(),
+      simulated: false,
+      status: "failed",
+      failureReason: error.message,
+      triggeredBy,
+      sentAt: referenceDate,
+    });
+
+    throw new Error(`Failed to send reminder to ${dueEntry.name}. ${error.message}`);
+  }
 }
 
 async function sendReminderToMemberById(memberId, options = {}) {
@@ -136,6 +165,7 @@ async function sendReminderToMemberById(memberId, options = {}) {
     return {
       sent: false,
       skipped: true,
+      failed: false,
       message: "Member not found.",
     };
   }
@@ -163,6 +193,7 @@ async function sendAllDueReminders({
     return {
       message: "No pending dues.",
       sentCount: 0,
+      failedCount: 0,
       skippedCount: 0,
       dueMembers: [],
       results: [],
@@ -170,26 +201,59 @@ async function sendAllDueReminders({
   }
 
   const results = [];
+
   for (const dueEntry of dueMembers) {
-    results.push(
-      await sendReminderForEntry(dueEntry, {
-        triggeredBy,
-        referenceDate,
-      })
-    );
+    try {
+      results.push(
+        await sendReminderForEntry(dueEntry, {
+          triggeredBy,
+          referenceDate,
+        })
+      );
+    } catch (error) {
+      results.push({
+        sent: false,
+        skipped: false,
+        failed: true,
+        memberId: dueEntry.memberId,
+        message: error.message,
+      });
+    }
   }
 
   const sentCount = results.filter((result) => result.sent).length;
-  const skippedCount = results.length - sentCount;
+  const skippedCount = results.filter((result) => result.skipped).length;
+  const failedCount = results.filter((result) => result.failed).length;
+
+  let message = "No pending dues.";
+
+  if (sentCount > 0 && failedCount === 0 && skippedCount === 0) {
+    message =
+      sentCount === 1
+        ? "Reminder sent successfully."
+        : `${sentCount} reminders sent successfully.`;
+  } else if (sentCount > 0) {
+    const parts = [`${sentCount} sent`];
+    if (failedCount > 0) {
+      parts.push(`${failedCount} failed`);
+    }
+    if (skippedCount > 0) {
+      parts.push(`${skippedCount} skipped`);
+    }
+    message = `Reminder run completed: ${parts.join(", ")}.`;
+  } else if (failedCount > 0) {
+    message =
+      failedCount === 1
+        ? "Failed to send reminder."
+        : `Failed to send ${failedCount} reminders.`;
+  } else if (skippedCount > 0) {
+    message = "No reminders could be sent because due members are missing valid phone numbers.";
+  }
 
   return {
-    message:
-      sentCount === 0
-        ? "No reminders could be sent."
-        : sentCount === 1
-          ? "Reminder sent successfully."
-          : `${sentCount} reminders sent successfully.`,
+    message,
     sentCount,
+    failedCount,
     skippedCount,
     dueMembers,
     results,

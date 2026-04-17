@@ -342,11 +342,23 @@ const togglePayment = asyncHandler(async (req, res) => {
 
 const sendMemberReminder = asyncHandler(async (req, res) => {
   const adminProfile = await ensureAdminProfile(req.user);
-  const result = await sendReminderToMemberById(req.params.id, {
-    adminProfile,
-    triggeredBy: "manual",
-    referenceDate: new Date(),
-  });
+  let result;
+
+  try {
+    result = await sendReminderToMemberById(req.params.id, {
+      adminProfile,
+      triggeredBy: "manual",
+      referenceDate: new Date(),
+    });
+  } catch (error) {
+    res.status(502);
+    throw error;
+  }
+
+  if (result.skipped) {
+    res.status(result.message === "Member not found." ? 404 : 400);
+    throw new Error(result.message);
+  }
 
   res.json({
     ...result,
@@ -361,6 +373,16 @@ const sendAllMemberReminders = asyncHandler(async (req, res) => {
     triggeredBy: "manual",
     referenceDate: new Date(),
   });
+
+  if (result.sentCount === 0 && result.failedCount > 0) {
+    res.status(502);
+    throw new Error(result.message);
+  }
+
+  if (result.sentCount === 0 && result.skippedCount > 0) {
+    res.status(400);
+    throw new Error(result.message);
+  }
 
   res.json(result);
 });

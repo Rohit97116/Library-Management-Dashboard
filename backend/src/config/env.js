@@ -18,4 +18,9 @@ module.exports = {
   adminPassword: process.env.ADMIN_PASSWORD || "Shanky03@26Ro",
   adminPhone: process.env.ADMIN_PHONE || "",
   libraryName: process.env.LIBRARY_NAME || "Ambey Library",
+  smsProvider: (process.env.SMS_PROVIDER || "twilio").trim().toLowerCase(),
+  twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || "",
+  twilioAuthToken: process.env.TWILIO_AUTH_TOKEN || "",
+  twilioFromNumber: process.env.TWILIO_FROM_NUMBER || "",
+  twilioMessagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID || "",
 };
