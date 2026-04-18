@@ -2,11 +2,10 @@ import { motion } from "framer-motion";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
-  BellRing,
-  CircleAlert,
   Download,
   IndianRupee,
   Menu,
+  MessageCircle,
   RefreshCw,
   Search,
   UserPlus,
@@ -26,6 +25,11 @@ import ThemeToggle from "../components/ThemeToggle";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../lib/api";
 import { formatCurrency } from "../utils/format";
+import {
+  generateWhatsAppLink,
+  openWhatsAppReminder,
+  normalizePhoneForWhatsApp,
+} from "../utils/whatsapp";
 
 function buildQueryString(searchText, statusFilter) {
   const params = new URLSearchParams();
@@ -51,7 +55,6 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [busyKey, setBusyKey] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [smsConfig, setSmsConfig] = useState({ trialMode: false });
   const [memberModal, setMemberModal] = useState({
     open: false,
     member: null,
@@ -97,18 +100,6 @@ export default function DashboardPage() {
     [logout, searchText, statusFilter, token]
   );
 
-  const loadSmsConfig = useCallback(async () => {
-    try {
-      const response = await apiRequest("/admin/sms-config", {
-        token,
-      });
-      setSmsConfig(response);
-    } catch (error) {
-      // Silently fail - SMS config is not critical to functionality
-      console.error("Failed to load SMS config:", error);
-    }
-  }, [token]);
-
   useEffect(() => {
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
@@ -120,10 +111,6 @@ export default function DashboardPage() {
       window.clearTimeout(timer);
     };
   }, [loadDashboard]);
-
-  useEffect(() => {
-    loadSmsConfig();
-  }, [loadSmsConfig]);
 
   const runMutation = useCallback(
     async (key, action) => {
@@ -284,7 +271,7 @@ export default function DashboardPage() {
     );
   }
 
-  async function handleSendMemberReminder(member) {
+  function handleSendMemberReminder(member) {
     if (!member.overdueCount) {
       toast("No pending dues.");
       return;
@@ -295,30 +282,89 @@ export default function DashboardPage() {
       return;
     }
 
-    await runMutation(`reminder-${member.id}`, () =>
-      apiRequest(`/members/${member.id}/reminders`, {
+    // Open WhatsApp with prefilled message
+    const adminProfile = dashboard?.adminProfile;
+    try {
+      toast.loading("Opening WhatsApp...", {  duration: 1000 });
+      openWhatsAppReminder({
+        phoneNumber: member.phoneNumber,
+        memberName: member.name,
+        monthlyFee: member.monthlyFee,
+        dueDate: member.dueDate,
+        adminName: adminProfile?.name || "Library Admin",
+        libraryName: adminProfile?.libraryName || "Ambey Library",
+        adminPhone: adminProfile?.phone || "",
+      });
+
+      // Log the reminder action
+      apiRequest(`/members/${member.id}/reminders/whatsapp`, {
         method: "POST",
         token,
-      })
-    );
+      }).catch(() => {
+        // Silently fail - logging is not critical
+      });
+
+      toast.success(`WhatsApp opened for ${member.name}`);
+    } catch (error) {
+      toast.error(error.message);
+    }
   }
 
-  async function handleSendAllReminders() {
+  function handleSendAllReminders() {
     if (!dueMembers.length) {
-      toast("No pending dues.");
+      toast("No pending dues found.");
       setReminderModalOpen(false);
       return;
     }
 
-    const result = await runMutation("reminders-all", () =>
-      apiRequest("/members/reminders/send-all", {
-        method: "POST",
-        token,
-      })
-    );
+    const adminProfile = dashboard?.adminProfile;
+    let successCount = 0;
+    let errorCount = 0;
 
-    if (result.ok) {
-      setReminderModalOpen(false);
+    // Open WhatsApp for each due member
+    dueMembers.forEach((member) => {
+      if (!member.canSendReminder) {
+        errorCount++;
+        return;
+      }
+
+      try {
+        openWhatsAppReminder({
+          phoneNumber: member.phoneNumber,
+          memberName: member.name,
+          monthlyFee: member.monthlyFee,
+          dueDate: member.dueDate,
+          adminName: adminProfile?.name || "Library Admin",
+          libraryName: adminProfile?.libraryName || "Ambey Library",
+          adminPhone: adminProfile?.phone || "",
+        });
+
+        successCount++;
+
+        // Log the reminder action
+        apiRequest(`/members/${member.memberId}/reminders/whatsapp`, {
+          method: "POST",
+          token,
+        }).catch(() => {
+          // Silently fail - logging is not critical
+        });
+      } catch (error) {
+        errorCount++;
+      }
+    });
+
+    setReminderModalOpen(false);
+
+    if (successCount > 0 && errorCount === 0) {
+      toast.success(
+        `${successCount} WhatsApp reminder${successCount > 1 ? "s" : ""} opened!`
+      );
+    } else if (successCount > 0) {
+      toast.success(
+        `${successCount} opened, ${errorCount} failed.`
+      );
+    } else {
+      toast.error("Failed to open WhatsApp reminders.");
     }
   }
 
@@ -667,9 +713,8 @@ export default function DashboardPage() {
         dueMembers={dueMembers}
         libraryName={dashboard?.adminProfile?.libraryName}
         onClose={() => setReminderModalOpen(false)}
-        onSend={handleSendAllReminders}
+        onSendAll={handleSendAllReminders}
         sending={busyKey === "reminders-all"}
-        trialMode={smsConfig.trialMode}
       />
 
       <MemberFormModal

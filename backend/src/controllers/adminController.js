@@ -1,6 +1,5 @@
 const asyncHandler = require("../utils/asyncHandler");
 const { ensureAdminProfile, serializeAdminProfile } = require("../services/adminProfileService");
-const { checkTwilioTrialMode } = require("../services/smsService");
 
 function parseProfilePayload(body) {
   const name = body.name?.trim();
@@ -65,21 +64,7 @@ const updateAdminProfile = asyncHandler(async (req, res) => {
   });
 });
 
-const getSmsConfig = asyncHandler(async (req, res) => {
-  const trialModeInfo = await checkTwilioTrialMode();
-  
-  res.json({
-    smsProvider: "twilio",
-    trialMode: trialModeInfo?.isTrialAccount || false,
-    accountType: trialModeInfo?.accountType || "Unknown",
-    warning: trialModeInfo?.isTrialAccount
-      ? "SMS can only be sent to verified numbers in Twilio Trial Account"
-      : null,
-  });
-});
-
 module.exports = {
   getAdminProfile,
   updateAdminProfile,
-  getSmsConfig,
 };

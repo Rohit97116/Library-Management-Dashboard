@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { BellRing, Edit3, Trash2 } from "lucide-react";
+import { MessageCircle, Edit3, Trash2 } from "lucide-react";
 import {
   formatCurrency,
   formatDate,
@@ -213,12 +213,12 @@ export default function LogbookTable({
                         disabled={reminderBusy || !member.canSendReminder || !hasDue}
                         className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border transition duration-200 ${
                           member.canSendReminder && hasDue
-                            ? "border-cyan-200 bg-white text-cyan-700 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-cyan-50 dark:border-cyan-500/20 dark:bg-slate-900 dark:text-cyan-200 dark:hover:bg-cyan-500/10"
+                            ? "border-green-200 bg-white text-green-700 hover:-translate-y-0.5 hover:border-green-300 hover:bg-green-50 dark:border-green-500/20 dark:bg-slate-900 dark:text-green-200 dark:hover:bg-green-500/10"
                             : "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-slate-950 dark:text-slate-600"
                         }`}
-                        aria-label={`Send reminder to ${member.name}`}
+                        aria-label={`Send WhatsApp reminder to ${member.name}`}
                       >
-                        <BellRing size={16} />
+                        <MessageCircle size={16} />
                       </button>
                       <button
                         type="button"

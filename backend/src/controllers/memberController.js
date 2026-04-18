@@ -14,8 +14,7 @@ const {
 } = require("../services/adminProfileService");
 const {
   checkDueMembers,
-  sendAllDueReminders,
-  sendReminderToMemberById,
+  logReminderAction,
 } = require("../services/reminderService");
 
 function escapeRegExp(value) {
@@ -340,54 +339,41 @@ const togglePayment = asyncHandler(async (req, res) => {
   });
 });
 
-const sendMemberReminder = asyncHandler(async (req, res) => {
-  const adminProfile = await ensureAdminProfile(req.user);
-  let result;
+/**
+ * WhatsApp Reminder - Logs when a WhatsApp reminder is sent from frontend
+ * (Client-side reminder sending, server just logs for audit trail)
+ */
+const logWhatsAppReminder = asyncHandler(async (req, res) => {
+  const { memberId } = req.params;
+  const member = await Member.findById(memberId);
 
-  try {
-    result = await sendReminderToMemberById(req.params.id, {
-      adminProfile,
-      triggeredBy: "manual",
-      referenceDate: new Date(),
-    });
-  } catch (error) {
-    res.status(502);
-    throw error;
+  if (!member) {
+    res.status(404);
+    throw new Error("Member not found.");
   }
 
-  if (result.skipped) {
-    res.status(result.message === "Member not found." ? 404 : 400);
-    throw new Error(result.message);
-  }
-
-  // Return success response with delivery status info
-  // Frontend should only show success if SMS was actually submitted successfully
-  res.json({
-    ...result,
-    message: result.message,
-    deliveryStatus: "submitted", // "submitted" = queued with provider, not delivered yet
-  });
-});
-
-const sendAllMemberReminders = asyncHandler(async (req, res) => {
+  // Get due members to find this member's entry
   const adminProfile = await ensureAdminProfile(req.user);
-  const result = await sendAllDueReminders({
+  const dueMembers = await checkDueMembers({
+    members: [member],
     adminProfile,
-    triggeredBy: "manual",
-    referenceDate: new Date(),
   });
 
-  if (result.sentCount === 0 && result.failedCount > 0) {
-    res.status(502);
-    throw new Error(result.message);
-  }
-
-  if (result.sentCount === 0 && result.skippedCount > 0) {
+  if (!dueMembers.length) {
     res.status(400);
-    throw new Error(result.message);
+    throw new Error("This member does not have pending dues.");
   }
 
-  res.json(result);
+  const dueEntry = dueMembers[0];
+
+  // Log the reminder action
+  await logReminderAction(memberId, dueEntry, new Date());
+
+  res.json({
+    success: true,
+    message: `WhatsApp reminder logged for ${member.name}`,
+    memberId,
+  });
 });
 
 module.exports = {
@@ -395,8 +381,7 @@ module.exports = {
   deleteMember,
   getDueMembers,
   getMembers,
-  sendAllMemberReminders,
-  sendMemberReminder,
+  logWhatsAppReminder,
   toggleMemberStatus,
   togglePayment,
   updateMember,

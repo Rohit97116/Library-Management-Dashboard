@@ -5,8 +5,7 @@ const {
   deleteMember,
   getDueMembers,
   getMembers,
-  sendAllMemberReminders,
-  sendMemberReminder,
+  logWhatsAppReminder,
   toggleMemberStatus,
   togglePayment,
   updateMember,
@@ -19,8 +18,7 @@ router.use(protect);
 router.get("/", getMembers);
 router.get("/due-members", getDueMembers);
 router.post("/", createMember);
-router.post("/reminders/send-all", sendAllMemberReminders);
-router.post("/:id/reminders", sendMemberReminder);
+router.post("/:id/reminders/whatsapp", logWhatsAppReminder);
 router.put("/:id", updateMember);
 router.delete("/:id", deleteMember);
 router.patch("/:id/status", toggleMemberStatus);
