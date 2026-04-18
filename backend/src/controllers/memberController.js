@@ -360,9 +360,12 @@ const sendMemberReminder = asyncHandler(async (req, res) => {
     throw new Error(result.message);
   }
 
+  // Return success response with delivery status info
+  // Frontend should only show success if SMS was actually submitted successfully
   res.json({
     ...result,
     message: result.message,
+    deliveryStatus: "submitted", // "submitted" = queued with provider, not delivered yet
   });
 });
 

@@ -18,8 +18,15 @@ function normalizePhoneNumber(value) {
   return rawValue;
 }
 
-function buildReminderMessage({ memberName, libraryName }) {
-  return `Hello ${memberName}, your monthly library fee is due. Please pay as soon as possible. - ${libraryName}`;
+function buildReminderMessage({ memberName, libraryName, adminName, adminPhone }) {
+  // New professional format with admin details
+  return `Hello ${memberName},
+
+Your monthly library fee is due.
+Please pay as soon as possible.
+
+From: ${adminName}
+Library: ${libraryName}`;
 }
 
 function getConfiguredSmsProvider() {
@@ -66,6 +73,52 @@ function assertTwilioConfig() {
   }
 }
 
+function isTrialModeError(error) {
+  const errorMessage = String(error?.message || "").toLowerCase();
+  return (
+    errorMessage.includes("unverified") ||
+    errorMessage.includes("trial") ||
+    errorMessage.includes("cannot send")
+  );
+}
+
+async function checkTwilioTrialMode() {
+  try {
+    if (!env.twilioAccountSid || !env.twilioAuthToken) {
+      return null;
+    }
+
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${env.twilioAccountSid}.json`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+            `${env.twilioAccountSid}:${env.twilioAuthToken}`
+          ).toString("base64")}`,
+        },
+      }
+    );
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (response.ok && payload) {
+      // Twilio account type: "Trial" or "Full"
+      // Trial accounts have restricted capabilities
+      return {
+        isTrialAccount: payload.type === "Trial",
+        accountType: payload.type || "Unknown",
+        status: payload.status || "active",
+      };
+    }
+  } catch (error) {
+    // Silently fail - trial mode detection is not critical
+    console.error("Error checking Twilio trial mode:", error.message);
+  }
+
+  return null;
+}
+
 async function sendViaTwilio({ to, message }) {
   assertTwilioConfig();
 
@@ -90,14 +143,30 @@ async function sendViaTwilio({ to, message }) {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload.message || "Failed to send reminder via Twilio.");
+    const errorMessage = payload.message || "Failed to send reminder via Twilio.";
+    
+    // Check if it's a trial mode unverified number error
+    if (isTrialModeError(payload)) {
+      const error = new Error(
+        `SMS failed: recipient number is not verified (Twilio Trial limitation)`
+      );
+      error.code = "TRIAL_MODE_UNVERIFIED";
+      error.originalMessage = errorMessage;
+      throw error;
+    }
+    
+    throw new Error(errorMessage);
   }
 
+  // Twilio initial status is usually "queued" or "accepted"
+  // In production, we should use webhooks to track delivery
+  // For now, we return the status but only log as "sent" when we have confirmation
   return {
     provider: "twilio",
     simulated: false,
     externalId: payload.sid,
-    status: payload.status || "queued",
+    status: payload.status || "queued", // queued, accepted, sending, sent, delivered, failed, undelivered
+    initialStatus: payload.status || "queued",
   };
 }
 
@@ -124,4 +193,5 @@ module.exports = {
   getConfiguredSmsProvider,
   normalizePhoneNumber,
   sendReminderSms,
+  checkTwilioTrialMode,
 };

@@ -1,4 +1,4 @@
-import { BellRing, CircleAlert } from "lucide-react";
+import { BellRing, CircleAlert, AlertTriangle } from "lucide-react";
 import ModalShell from "./ModalShell";
 import { formatCurrency, formatShortDate } from "../utils/format";
 
@@ -9,6 +9,7 @@ export default function DueReminderModal({
   onSend,
   open,
   sending,
+  trialMode = false,
 }) {
   const reminderCount = dueMembers.length;
 
@@ -46,10 +47,19 @@ export default function DueReminderModal({
       }
     >
       <div className="space-y-4">
+        {trialMode && (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+            <p>
+              <span className="font-semibold">Twilio Trial Mode:</span> SMS can only be sent to verified numbers. Unverified recipients will fail.
+            </p>
+          </div>
+        )}
+
         <div className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50/80 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-100">
           <CircleAlert size={18} className="mt-0.5 shrink-0" />
           <p>
-            Reminder messages are simulated for now and will use the library name
+            Reminders will include your library details and admin contact information.
             <span className="font-semibold"> {libraryName || "Ambey Library"}</span>.
           </p>
         </div>

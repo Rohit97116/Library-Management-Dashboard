@@ -56,6 +56,8 @@ function buildDueMemberEntry(member, cycleSnapshot, adminProfile, reminderMeta) 
     message: buildReminderMessage({
       memberName: member.name,
       libraryName: adminProfile?.libraryName || "Ambey Library",
+      adminName: adminProfile?.name || "Library Admin",
+      adminPhone: adminProfile?.phone || "",
     }),
   };
 }
@@ -112,6 +114,11 @@ async function sendReminderForEntry(
       message: dueEntry.message,
     });
 
+    // Only mark as "sent" if Twilio confirmed successful submission
+    // Status "queued", "accepted", "sending" indicate pending delivery
+    // Real delivery confirmation comes via webhooks (production setup)
+    const sentStatus = smsResult.status === "sent" ? "sent" : "pending";
+
     await ReminderLog.create({
       member: dueEntry.memberId,
       cycleYear: dueEntry.cycleYear,
@@ -123,7 +130,7 @@ async function sendReminderForEntry(
       provider: smsResult.provider,
       simulated: smsResult.simulated,
       externalId: smsResult.externalId || "",
-      status: "sent",
+      status: sentStatus,
       triggeredBy,
       sentAt: referenceDate,
     });
@@ -135,9 +142,15 @@ async function sendReminderForEntry(
       simulated: smsResult.simulated,
       provider: smsResult.provider,
       memberId: dueEntry.memberId,
-      message: `Reminder sent successfully to ${dueEntry.name}.`,
+      externalId: smsResult.externalId,
+      message: `Reminder queued successfully for ${dueEntry.name}. Delivery is pending.`,
     };
   } catch (error) {
+    const isTrialModeError = error.code === "TRIAL_MODE_UNVERIFIED";
+    const failureReason = isTrialModeError
+      ? "Twilio Trial: recipient number not verified"
+      : error.message;
+
     await ReminderLog.create({
       member: dueEntry.memberId,
       cycleYear: dueEntry.cycleYear,
@@ -149,12 +162,16 @@ async function sendReminderForEntry(
       provider: getConfiguredSmsProvider(),
       simulated: false,
       status: "failed",
-      failureReason: error.message,
+      failureReason,
       triggeredBy,
       sentAt: referenceDate,
     });
 
-    throw new Error(`Failed to send reminder to ${dueEntry.name}. ${error.message}`);
+    const errorMessage = isTrialModeError
+      ? error.message
+      : `Failed to send reminder to ${dueEntry.name}. ${error.message}`;
+
+    throw new Error(errorMessage);
   }
 }
 
@@ -230,10 +247,10 @@ async function sendAllDueReminders({
   if (sentCount > 0 && failedCount === 0 && skippedCount === 0) {
     message =
       sentCount === 1
-        ? "Reminder sent successfully."
-        : `${sentCount} reminders sent successfully.`;
+        ? "Reminder queued successfully. Delivery is pending."
+        : `${sentCount} reminders queued successfully. Deliveries are pending.`;
   } else if (sentCount > 0) {
-    const parts = [`${sentCount} sent`];
+    const parts = [`${sentCount} queued`];
     if (failedCount > 0) {
       parts.push(`${failedCount} failed`);
     }

@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [busyKey, setBusyKey] = useState("");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [smsConfig, setSmsConfig] = useState({ trialMode: false });
   const [memberModal, setMemberModal] = useState({
     open: false,
     member: null,
@@ -96,6 +97,18 @@ export default function DashboardPage() {
     [logout, searchText, statusFilter, token]
   );
 
+  const loadSmsConfig = useCallback(async () => {
+    try {
+      const response = await apiRequest("/admin/sms-config", {
+        token,
+      });
+      setSmsConfig(response);
+    } catch (error) {
+      // Silently fail - SMS config is not critical to functionality
+      console.error("Failed to load SMS config:", error);
+    }
+  }, [token]);
+
   useEffect(() => {
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
@@ -107,6 +120,10 @@ export default function DashboardPage() {
       window.clearTimeout(timer);
     };
   }, [loadDashboard]);
+
+  useEffect(() => {
+    loadSmsConfig();
+  }, [loadSmsConfig]);
 
   const runMutation = useCallback(
     async (key, action) => {
@@ -652,6 +669,7 @@ export default function DashboardPage() {
         onClose={() => setReminderModalOpen(false)}
         onSend={handleSendAllReminders}
         sending={busyKey === "reminders-all"}
+        trialMode={smsConfig.trialMode}
       />
 
       <MemberFormModal
