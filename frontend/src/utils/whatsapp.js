@@ -56,6 +56,19 @@ export function formatDateForMessage(dateString) {
 }
 
 /**
+ * Format phone number with spacing (XXXXX XXXXX)
+ * Converts 10-digit number to readable format: 84489 27114
+ */
+export function formatPhoneWithSpacing(phoneNumber) {
+  if (!phoneNumber) return "";
+  const digits = String(phoneNumber).replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `${digits.slice(0, 5)} ${digits.slice(5)}`;
+  }
+  return phoneNumber;
+}
+
+/**
  * Build WhatsApp reminder message
  * Returns the complete message text
  */
@@ -69,6 +82,7 @@ export function buildWhatsAppMessage({
 }) {
   const formattedFee = formatINR(monthlyFee);
   const formattedDate = formatDateForMessage(dueDate);
+  const formattedPhone = formatPhoneWithSpacing(adminPhone);
 
   return `Hello ${memberName},
 
@@ -78,9 +92,10 @@ Please pay as soon as possible.
 Amount Due: ${formattedFee}
 Due Date: ${formattedDate}
 
-From: ${adminName}
-Library: ${libraryName}
-Contact: ${adminPhone}
+From:
+${adminName}
+${libraryName}
+Contact: ${formattedPhone}
 
 Thank you.`;
 }
