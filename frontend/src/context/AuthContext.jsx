@@ -98,13 +98,13 @@ export function AuthProvider({ children }) {
         const response = await apiRequest("/auth/me", { token });
         if (!ignore) {
           updateUser(response.user);
+          setAuthReady(true);
         }
       } catch (error) {
         if (!ignore) {
+          // Clear session on auth error (401, invalid token, etc.)
+          console.warn("Auth restore failed:", error.message);
           clearSession();
-        }
-      } finally {
-        if (!ignore) {
           setAuthReady(true);
         }
       }

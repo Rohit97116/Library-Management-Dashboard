@@ -3,11 +3,18 @@ import PageLoader from "./PageLoader";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute() {
-  const { authReady, isAuthenticated } = useAuth();
+  const { authReady, isAuthenticated, token } = useAuth();
 
+  // Still loading auth state - show loader
   if (!authReady) {
-    return <PageLoader label="Restoring your workspace..." />;
+    return <PageLoader label="Verifying access..." />;
   }
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  // Auth state is ready but user is not authenticated
+  if (!isAuthenticated || !token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // User is authenticated - render the protected route
+  return <Outlet />;
 }

@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
+  BellRing,
+  CircleAlert,
   Download,
   IndianRupee,
   Menu,
@@ -23,6 +25,7 @@ import MemberFormModal from "../components/MemberFormModal";
 import Sidebar from "../components/Sidebar";
 import ThemeToggle from "../components/ThemeToggle";
 import { useAuth } from "../context/AuthContext";
+import PageLoader from "../components/PageLoader";
 import { apiRequest } from "../lib/api";
 import { formatCurrency } from "../utils/format";
 import {
@@ -201,6 +204,11 @@ export default function DashboardPage() {
       },
     ];
   }, [dashboard]);
+
+  // Show loading state while fetching dashboard data
+  if (loading && !dashboard) {
+    return <PageLoader label="Loading your dashboard..." />;
+  }
 
   function scrollToSection(sectionId) {
     document.getElementById(sectionId)?.scrollIntoView({
