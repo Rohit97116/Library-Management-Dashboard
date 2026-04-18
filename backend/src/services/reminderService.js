@@ -41,6 +41,12 @@ function buildDueMemberEntry(member, cycleSnapshot, adminProfile, reminderMeta) 
     cycleYear: cycleSnapshot.cycleYear,
     cycleLabel: cycleSnapshot.cycleLabel,
     monthKeys: overdueMonths.map((month) => month.key),
+    // Include detailed month info for multi-month message building
+    overdueMonths: overdueMonths.map((month) => ({
+      label: month.label,
+      dueDate: new Date(month.dueDate).toISOString(),
+      amount: member.monthlyFee,
+    })),
     lastReminderAt: latestReminder?.sentAt || null,
     reminderStatus: phoneNumber
       ? latestReminder?.status === "sent"

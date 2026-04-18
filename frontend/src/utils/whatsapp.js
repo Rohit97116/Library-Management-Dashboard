@@ -70,21 +70,66 @@ export function formatPhoneWithSpacing(phoneNumber) {
 
 /**
  * Build WhatsApp reminder message
- * Returns the complete message text
+ * Supports both single month and multiple months
+ * 
+ * Single month format:
+ * buildWhatsAppMessage({ memberName, monthlyFee, dueDate, ... })
+ * 
+ * Multiple months format:
+ * buildWhatsAppMessage({ memberName, overdueMonths: [{label, dueDate, amount}, ...], totalAmount, ... })
  */
 export function buildWhatsAppMessage({
   memberName,
-  monthlyFee,
-  dueDate,
   adminName,
   libraryName,
   adminPhone,
+  // Single month (backward compatible)
+  monthlyFee,
+  dueDate,
+  // Multiple months
+  overdueMonths,
+  totalAmount,
 }) {
-  const formattedFee = formatINR(monthlyFee);
-  const formattedDate = formatDateForMessage(dueDate);
   const formattedPhone = formatPhoneWithSpacing(adminPhone);
 
-  return `Hello ${memberName},
+  // Handle multiple months
+  if (overdueMonths && Array.isArray(overdueMonths) && overdueMonths.length > 1) {
+    const formattedTotal = formatINR(totalAmount);
+    const duesList = overdueMonths
+      .map((month) => {
+        const formattedAmount = formatINR(month.amount);
+        const formattedMonthDate = formatDateForMessage(month.dueDate);
+        return `• ${month.label} — ${formattedAmount}`;
+      })
+      .join("\n");
+
+    return `Hello ${memberName},
+
+Your monthly library fee is pending for multiple months.
+
+Pending Dues:
+
+${duesList}
+
+Total Pending Amount: ${formattedTotal}
+
+Please pay as soon as possible.
+
+From:
+${adminName}
+${libraryName}
+Contact: ${formattedPhone}
+
+Thank you.`;
+  }
+
+  // Handle single month (including when overdueMonths has 1 item)
+  if (overdueMonths && Array.isArray(overdueMonths) && overdueMonths.length === 1) {
+    const month = overdueMonths[0];
+    const formattedFee = formatINR(month.amount);
+    const formattedDate = formatDateForMessage(month.dueDate);
+
+    return `Hello ${memberName},
 
 Your monthly library fee is due.
 Please pay as soon as possible.
@@ -98,20 +143,49 @@ ${libraryName}
 Contact: ${formattedPhone}
 
 Thank you.`;
+  }
+
+  // Fallback for original single month format (for backward compatibility)
+  if (monthlyFee && dueDate) {
+    const formattedFee = formatINR(monthlyFee);
+    const formattedDate = formatDateForMessage(dueDate);
+
+    return `Hello ${memberName},
+
+Your monthly library fee is due.
+Please pay as soon as possible.
+
+Amount Due: ${formattedFee}
+Due Date: ${formattedDate}
+
+From:
+${adminName}
+${libraryName}
+Contact: ${formattedPhone}
+
+Thank you.`;
+  }
+
+  throw new Error("Must provide either overdueMonths array or monthlyFee/dueDate");
 }
 
 /**
  * Generate WhatsApp deep link with message
  * Returns the wa.me URL
+ * Supports both single month and multiple months
  */
 export function generateWhatsAppLink({
   phoneNumber,
   memberName,
-  monthlyFee,
-  dueDate,
   adminName,
   libraryName,
   adminPhone,
+  // Single month (backward compatible)
+  monthlyFee,
+  dueDate,
+  // Multiple months
+  overdueMonths,
+  totalAmount,
 }) {
   const normalizedPhone = normalizePhoneForWhatsApp(phoneNumber);
 
@@ -126,6 +200,8 @@ export function generateWhatsAppLink({
     adminName,
     libraryName,
     adminPhone,
+    overdueMonths,
+    totalAmount,
   });
 
   // Encode message for URL
@@ -138,15 +214,20 @@ export function generateWhatsAppLink({
 /**
  * Open WhatsApp with prefilled message
  * This opens the WhatsApp link in a new window/tab
+ * Supports both single month and multiple months
  */
 export function openWhatsAppReminder({
   phoneNumber,
   memberName,
-  monthlyFee,
-  dueDate,
   adminName,
   libraryName,
   adminPhone,
+  // Single month (backward compatible)
+  monthlyFee,
+  dueDate,
+  // Multiple months
+  overdueMonths,
+  totalAmount,
 }) {
   try {
     const link = generateWhatsAppLink({
@@ -157,6 +238,8 @@ export function openWhatsAppReminder({
       adminName,
       libraryName,
       adminPhone,
+      overdueMonths,
+      totalAmount,
     });
 
     // Open in new tab/window

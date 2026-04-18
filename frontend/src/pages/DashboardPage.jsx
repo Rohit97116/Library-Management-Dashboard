@@ -290,18 +290,30 @@ export default function DashboardPage() {
       return;
     }
 
+    // Extract overdue months from member data
+    const overdueMonths = (member.months || [])
+      .filter((month) => month.isOverdue)
+      .map((month) => ({
+        label: month.label,
+        dueDate: month.dueDate,
+        amount: member.monthlyFee,
+      }));
+
+    const totalOverdueAmount = overdueMonths.length * member.monthlyFee;
+
     // Open WhatsApp with prefilled message
     const adminProfile = dashboard?.adminProfile;
     try {
-      toast.loading("Opening WhatsApp...", {  duration: 1000 });
+      toast.loading("Opening WhatsApp...", { duration: 1000 });
       openWhatsAppReminder({
         phoneNumber: member.phoneNumber,
         memberName: member.name,
-        monthlyFee: member.monthlyFee,
-        dueDate: member.dueDate,
         adminName: adminProfile?.name || "Library Admin",
         libraryName: adminProfile?.libraryName || "Ambey Library",
         adminPhone: adminProfile?.phone || "",
+        // Pass all overdue months for multi-month message
+        overdueMonths,
+        totalAmount: totalOverdueAmount,
       });
 
       // Log the reminder action
@@ -330,27 +342,28 @@ export default function DashboardPage() {
     let errorCount = 0;
 
     // Open WhatsApp for each due member
-    dueMembers.forEach((member) => {
-      if (!member.canSendReminder) {
+    dueMembers.forEach((dueEntry) => {
+      if (!dueEntry.canSendReminder) {
         errorCount++;
         return;
       }
 
       try {
         openWhatsAppReminder({
-          phoneNumber: member.phoneNumber,
-          memberName: member.name,
-          monthlyFee: member.monthlyFee,
-          dueDate: member.dueDate,
+          phoneNumber: dueEntry.phoneNumber,
+          memberName: dueEntry.name,
           adminName: adminProfile?.name || "Library Admin",
           libraryName: adminProfile?.libraryName || "Ambey Library",
           adminPhone: adminProfile?.phone || "",
+          // Pass all overdue months from backend data
+          overdueMonths: dueEntry.overdueMonths,
+          totalAmount: dueEntry.overdueAmount,
         });
 
         successCount++;
 
         // Log the reminder action
-        apiRequest(`/members/${member.memberId}/reminders/whatsapp`, {
+        apiRequest(`/members/${dueEntry.memberId}/reminders/whatsapp`, {
           method: "POST",
           token,
         }).catch(() => {
