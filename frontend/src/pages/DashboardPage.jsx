@@ -1,3 +1,7 @@
+import ClickSpark from "../components/effects/ClickSpark";
+import LightRays from "../components/effects/LightRays";
+import ShinyText from "../components/effects/ShinyText";
+import { filterActiveDueMembers } from "../utils/memberStatus";
 import { motion } from "framer-motion";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -140,7 +144,11 @@ export default function DashboardPage() {
     [loadDashboard, logout]
   );
 
-  const dueMembers = dashboard?.dueMembers || [];
+  const allMembers = dashboard?.members || [];
+const dueMembers = useMemo(
+  () => filterActiveDueMembers(dashboard?.dueMembers || [], allMembers),
+  [dashboard?.dueMembers, allMembers]
+);
   const dueSignature = useMemo(
     () =>
       dueMembers
@@ -515,13 +523,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <motion.main
-      className="min-h-screen pb-8 lg:pl-72"
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -18 }}
-      transition={{ duration: 0.25 }}
-    >
+    <ClickSpark sparkColor="#D4AF37" sparkCount={10} sparkRadius={20}>
+      <motion.main
+        className="relative min-h-screen pb-8 lg:pl-72"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -18 }}
+        transition={{ duration: 0.25 }}
+      >
       <Sidebar
         open={mobileSidebarOpen}
         onClose={() => setMobileSidebarOpen(false)}
@@ -541,6 +550,18 @@ export default function DashboardPage() {
       />
 
       <div className="px-4 pt-4 md:px-6 lg:px-8">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] overflow-hidden">
+          <LightRays 
+          raysOrigin="top-center"
+          raysColor="#D4AF37"
+          raysSpeed={0.8}
+          lightSpread={0.6}
+          rayLength={1.4}
+          followMouse={false}
+          noiseAmount={0.08}
+          distortion={0.04} 
+          />
+        </div>
         <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -555,8 +576,8 @@ export default function DashboardPage() {
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 Welcome back, {user?.name || "Admin"}
               </p>
-              <h1 className="mt-1 text-3xl font-semibold text-slate-950 dark:text-white">
-                {(dashboard?.adminProfile?.libraryName || "Ambey Library")} Dashboard
+              <h1 className="text-3xl md:text-4xl font-semibold">
+                <ShinyText text={`${dashboard?.adminProfile?.libraryName || "Ambey Library"} Dashboard`} speed={5} />
               </h1>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                 {dashboard ? `Cycle ${dashboard.cycleLabel}` : "Loading cycle"}
@@ -613,9 +634,9 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                       {card.title}
-                    </p>
-                    <p className="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">
-                      {card.value}
+                    </p> 
+                    <p className="mt-3 text-2xl font-semibold">
+                      <ShinyText text={String(card.value)} speed={6} />
                     </p>
                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                       {card.description}
@@ -754,5 +775,6 @@ export default function DashboardPage() {
         submitting={Boolean(deleteTarget && busyKey === `delete-${deleteTarget.id}`)}
       />
     </motion.main>
+    </ClickSpark>
   );
 }

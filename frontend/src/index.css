@@ -3,98 +3,74 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --gold: 212 175 55;       /* #D4AF37 */
+  --gold-soft: 234 209 130; /* warm highlight */
+  --emerald-lux: 16 122 87; /* deep emerald */
 }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
-  @apply min-h-screen bg-slate-100 text-slate-950 antialiased;
-  background-image: linear-gradient(
-    160deg,
-    rgba(226, 232, 240, 0.96) 0%,
-    rgba(236, 253, 245, 0.94) 42%,
-    rgba(224, 242, 254, 0.95) 100%
-  );
+  @apply min-h-screen bg-slate-950 text-slate-50 antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 20% -10%, rgba(212,175,55,0.08), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(16,122,87,0.10), transparent 65%),
+    linear-gradient(160deg, #07090d 0%, #0b0f15 55%, #0a0d12 100%);
 }
 
-.dark body {
-  @apply bg-slate-950 text-slate-50;
-  background-image: linear-gradient(
-    160deg,
-    rgba(2, 6, 23, 1) 0%,
-    rgba(15, 23, 42, 0.98) 54%,
-    rgba(8, 47, 73, 0.9) 100%
-  );
-}
-
+/* Subtle fixed grid */
 body::before {
   content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: linear-gradient(
-      rgba(255, 255, 255, 0.08) 1px,
-      transparent 1px
-    ),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.8),
-    rgba(255, 255, 255, 0)
-  );
-  opacity: 0.25;
+  position: fixed; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(212,175,55,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212,175,55,0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0));
+  opacity: 0.35;
 }
 
-.dark body::before {
-  opacity: 0.1;
-}
+* { scrollbar-width: thin; scrollbar-color: rgba(212,175,55,0.45) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.4); border-radius: 999px; }
+*::-webkit-scrollbar-track { background: transparent; }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(14, 116, 144, 0.4) transparent;
-}
-
-*::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: rgba(14, 116, 144, 0.35);
-  border-radius: 999px;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
+@keyframes shine {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 @layer components {
   .glass-panel {
-    @apply rounded-lg border border-white/60 bg-white/70 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/70;
+    @apply rounded-xl border border-amber-200/10 bg-slate-900/55 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur-xl;
   }
 
   .glass-button {
-    @apply inline-flex items-center justify-center rounded-lg border border-white/60 bg-white/70 text-slate-700 shadow-soft transition duration-200 hover:-translate-y-0.5 hover:bg-white dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-100 dark:hover:bg-slate-900;
+    @apply inline-flex items-center justify-center rounded-lg border border-amber-200/15 bg-slate-900/60 text-slate-100 transition duration-200 hover:-translate-y-0.5 hover:border-amber-300/40 hover:bg-slate-900/80;
   }
 
   .primary-button {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-slate-950 transition duration-200 hover:-translate-y-0.5;
+    background-image: linear-gradient(135deg, #f5d97a 0%, #d4af37 50%, #a17a18 100%);
+    box-shadow: 0 8px 24px -10px rgba(212,175,55,0.55);
   }
+  .primary-button:hover { box-shadow: 0 10px 30px -8px rgba(212,175,55,0.7); }
 
   .secondary-button {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300 hover:text-cyan-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-cyan-400/40 dark:hover:text-cyan-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-amber-200/20 bg-slate-900/60 px-4 py-3 text-sm font-semibold text-amber-100 transition duration-200 hover:-translate-y-0.5 hover:border-amber-300/50 hover:text-amber-50;
   }
 
   .field-input {
-    @apply h-12 w-full rounded-lg border border-slate-200 bg-white/90 px-4 text-sm text-slate-900 outline-none transition duration-200 placeholder:text-slate-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-50 dark:placeholder:text-slate-500;
+    @apply h-12 w-full rounded-lg border border-amber-200/10 bg-slate-950/70 px-4 text-sm text-slate-50 outline-none transition duration-200 placeholder:text-slate-500 focus:border-amber-300/50 focus:ring-2 focus:ring-amber-300/20;
   }
 
   .field-label {
-    @apply mb-2 block text-sm font-medium text-slate-600 dark:text-slate-300;
+    @apply mb-2 block text-sm font-medium text-amber-100/80;
+  }
+
+  .lux-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent);
   }
 }

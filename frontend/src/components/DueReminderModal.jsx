@@ -46,7 +46,7 @@ export default function DueReminderModal({
       }
     >
       <div className="space-y-4">
-        <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50/80 px-4 py-3 text-sm text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-100">
+        <div className="flex items-start gap-3 rounded-lg border border-amber-300/20 bg-amber-400/5 px-4 py-3 text-sm text-amber-100">
           <MessageCircle size={18} className="mt-0.5 shrink-0" />
           <p>
             Reminders will be sent via WhatsApp with your admin details.
@@ -64,7 +64,7 @@ export default function DueReminderModal({
             {dueMembers.map((member) => (
               <div
                 key={`${member.memberId}-${member.dueDate}`}
-                className="rounded-lg border border-slate-200/70 bg-white/70 px-4 py-4 shadow-soft transition duration-200 hover:border-green-300 dark:border-white/10 dark:bg-slate-950/50 dark:hover:border-green-400/30"
+                className="rounded-lg border border-amber-200/10 bg-slate-900/60 px-4 py-4 transition duration-200 hover:border-amber-300/30"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
