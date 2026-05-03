@@ -1,5 +1,5 @@
 import ClickSpark from "../components/effects/ClickSpark";
-import LightRays from "../components/effects/LightRays";
+import LiquidEther from "../components/effects/liquidether";
 import ShinyText from "../components/effects/ShinyText";
 import { filterActiveDueMembers } from "../utils/memberStatus";
 import { motion } from "framer-motion";
@@ -551,15 +551,17 @@ const dueMembers = useMemo(
 
       <div className="px-4 pt-4 md:px-6 lg:px-8">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] overflow-hidden">
-          <LightRays 
-          raysOrigin="top-center"
-          raysColor="#D4AF37"
-          raysSpeed={0.8}
-          lightSpread={0.6}
-          rayLength={1.4}
-          followMouse={false}
-          noiseAmount={0.08}
-          distortion={0.04} 
+          <LiquidEther
+            colors={['#0B1020', '#2C1F5E', '#8B5CF6', '#F472B6']}
+            mouseForce={14}
+            cursorSize={88}
+            resolution={0.45}
+            autoDemo={true}
+            autoSpeed={0.42}
+            autoIntensity={1.8}
+            takeoverDuration={0.25}
+            autoResumeDelay={1100}
+            autoRampDuration={0.7}
           />
         </div>
         <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
