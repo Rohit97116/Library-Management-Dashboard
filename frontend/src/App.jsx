@@ -1,7 +1,6 @@
 import { AnimatePresence } from "framer-motion";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import GuestRoute from "./components/GuestRoute";
-import Galaxy from "./components/effects/Galaxy";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
@@ -28,25 +27,8 @@ function AnimatedRoutes() {
 
 export default function App() {
   return (
-    <div className="isolate relative min-h-screen overflow-hidden bg-slate-950">
-      <Galaxy
-        mouseRepulsion={false}
-        mouseInteraction={false}
-        density={3}
-        glowIntensity={0.3}
-        saturation={0.2}
-        hueShift={20}
-        twinkleIntensity={1}
-        rotationSpeed={0}
-        repulsionStrength={0}
-        autoCenterRepulsion={20}
-        starSpeed={1.2}
-        speed={1.9}
-        className="pointer-events-none absolute inset-0 z-0"
-      />
-      <div className="relative z-10">
-        <AnimatedRoutes />
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+      <AnimatedRoutes />
     </div>
   );
 }
