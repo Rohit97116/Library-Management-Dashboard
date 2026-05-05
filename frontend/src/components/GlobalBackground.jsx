@@ -4,7 +4,7 @@ import './GlobalBackground.css';
 
 export default function GlobalBackground({ children }) {
   return (
-    <>
+    <div style={{ position: 'relative', width: '100%', minHeight: '100vh', overflow: 'hidden' }}>
       <div className="global-bg" aria-hidden="true">
         <div className="pixel-snow-wrapper">
           <PixelSnow
@@ -24,7 +24,9 @@ export default function GlobalBackground({ children }) {
           />
         </div>
       </div>
-      <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
-    </>
+      <div style={{ position: 'relative', zIndex: 1, width: '100%' }}>
+        {children}
+      </div>
+    </div>
   );
 }
