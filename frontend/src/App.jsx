@@ -28,7 +28,7 @@ function AnimatedRoutes() {
 
 export default function App() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+    <div className="isolate relative min-h-screen overflow-hidden bg-slate-950">
       <Galaxy
         mouseRepulsion={false}
         mouseInteraction={false}
@@ -42,9 +42,11 @@ export default function App() {
         autoCenterRepulsion={20}
         starSpeed={1.2}
         speed={1.9}
-        className="pointer-events-none fixed inset-0 -z-10"
+        className="pointer-events-none absolute inset-0 z-0"
       />
-      <AnimatedRoutes />
+      <div className="relative z-10">
+        <AnimatedRoutes />
+      </div>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export default function ShinyText({
       className={`inline-block bg-clip-text text-transparent ${className}`}
       style={{
         backgroundImage:
-          "linear-gradient(120deg, rgba(212,175,55,0.55) 40%, rgba(255,232,150,1) 50%, rgba(212,175,55,0.55) 60%)",
+          "linear-gradient(120deg, rgba(255, 255, 255, 0.55) 40%, rgb(255, 255, 255) 50%, rgb(255, 255, 255) 60%)",
         backgroundSize: "200% 100%",
         WebkitBackgroundClip: "text",
         animation: disabled ? "none" : `shine ${animationDuration} linear infinite`,
