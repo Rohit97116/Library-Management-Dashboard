@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import ModalShell from "./ModalShell";
 
+const SEAT_TYPE_OPTIONS = [
+  "Economy Seat",
+  "Economy with Locker",
+  "Premium Seat",
+  "Exclusive Seat",
+];
+
 function createInitialState() {
   return {
     name: "",
@@ -8,6 +15,8 @@ function createInitialState() {
     monthlyFee: "1200",
     phoneNumber: "",
     status: "active",
+    seatNo: "",
+    seatType: "",
   };
 }
 
@@ -33,6 +42,8 @@ export default function MemberFormModal({
         monthlyFee: String(member.monthlyFee ?? ""),
         phoneNumber: member.phoneNumber || member.phone || "",
         status: member.status || "active",
+        seatNo: member.seatNo || "",
+        seatType: member.seatType || "",
       });
       return;
     }
@@ -45,6 +56,8 @@ export default function MemberFormModal({
     await onSubmit({
       ...formValues,
       monthlyFee: Number(formValues.monthlyFee),
+      seatNo: formValues.seatNo || null,
+      seatType: formValues.seatType || null,
     });
   }
 
@@ -171,6 +184,49 @@ export default function MemberFormModal({
           >
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="seat-no" className="field-label">
+            Seat No. <span className="text-xs text-slate-400">(Optional)</span>
+          </label>
+          <input
+            id="seat-no"
+            type="text"
+            className="field-input"
+            placeholder="e.g., A101"
+            value={formValues.seatNo}
+            onChange={(event) =>
+              setFormValues((current) => ({
+                ...current,
+                seatNo: event.target.value,
+              }))
+            }
+          />
+        </div>
+
+        <div>
+          <label htmlFor="seat-type" className="field-label">
+            Seat Type <span className="text-xs text-slate-400">(Optional)</span>
+          </label>
+          <select
+            id="seat-type"
+            className="field-input"
+            value={formValues.seatType}
+            onChange={(event) =>
+              setFormValues((current) => ({
+                ...current,
+                seatType: event.target.value,
+              }))
+            }
+          >
+            <option value="">-- Select Seat Type --</option>
+            {SEAT_TYPE_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
           </select>
         </div>
       </form>

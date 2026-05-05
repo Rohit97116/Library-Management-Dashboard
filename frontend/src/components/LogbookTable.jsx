@@ -64,6 +64,8 @@ export default function LogbookTable({
               <th className="px-3 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Status</th>
               <th className="px-3 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">S.No</th>
               <th className="px-3 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Member Name</th>
+              <th className="px-3 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Seat No.</th>
+              <th className="px-3 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Seat Type</th>
               <th className="px-3 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">Date of Joining</th>
               {months.map((month) => (
                 <th key={month.index} className="px-3 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]">
@@ -76,7 +78,7 @@ export default function LogbookTable({
           <tbody>
             {members.length === 0 ? (
               <tr>
-                <td colSpan={months.length + 5} className="px-6 py-14 text-center text-sm text-slate-500">
+                <td colSpan={months.length + 7} className="px-6 py-14 text-center text-sm text-slate-500">
                   No members match this filter.
                 </td>
               </tr>
@@ -151,6 +153,12 @@ export default function LogbookTable({
                         </div>
                       ) : null}
                     </div>
+                  </td>
+                  <td className="px-3 py-3 align-top text-sm text-slate-300">
+                    {member.seatNo || "-"}
+                  </td>
+                  <td className="px-3 py-3 align-top text-sm text-slate-300">
+                    {member.seatType || "-"}
                   </td>
                   <td className="px-3 py-3 align-top text-sm text-slate-300">
                     {formatDate(member.dateOfJoining)}

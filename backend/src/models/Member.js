@@ -68,6 +68,16 @@ const memberSchema = new mongoose.Schema(
       enum: ["active", "inactive"],
       default: "active",
     },
+    seatNo: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    seatType: {
+      type: String,
+      enum: ["Economy Seat", "Economy with Locker", "Premium Seat", "Exclusive Seat"],
+      default: null,
+    },
     monthlyFees: {
       type: Map,
       of: paymentEntrySchema,
